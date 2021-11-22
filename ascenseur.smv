@@ -1,0 +1,98 @@
+module main(cap1,cap2,cap3,appel1,appel2,appel3,voyant1,voyant2,voyant3,monter,descendre)
+{
+	input cap1,cap2,cap3 : boolean;
+	input appel1,appel2,appel3 : boolean;
+	output voyant1,voyant2,voyant3 : boolean;
+	output monter,descendre : boolean;
+
+	x0,x1,x2,x3 : boolean;
+	x10,x11 : boolean;
+	x20,x21 : boolean;
+	x30,x31 : boolean;
+
+	debut_monter,fin_monter : boolean;
+	debut_descendre,fin_descendre : boolean;
+
+	etage : {etage1,entresol12,etage2,entresol23,etage3};
+
+	/* Init boutons */
+	init(appel1) := 0;
+	init(appel2) := 0;
+	init(appel3) := 0;
+	/* Init bouton appel 1 */
+	init(x10) := 1;
+	init(x11) := 0;
+	/* Init bouton appel 2 */
+	init(x20) := 1;
+	init(x21) := 0;
+	/* Init bouton appel 3 */
+	init(x30) := 1;
+	init(x31) := 0;
+	/* Init cabine */
+	init(x0) := 1;
+	init(x1) := 0;
+	init(x2) := 0;
+	init(x3) := 0;
+
+	/* Gestion étage */
+	next(etage) :=
+		switch(etage){
+			etage1: monter ? entresol12 : etage1;
+			entresol12: monter ? etage2 : descendre ? etage1 : entresol12;
+			etage2: monter ? entresol23 : descendre ? entresol12 : etage2;
+			entresol23: monter ? etage3 : descendre ? etage2 : entresol23;
+			etage3: descendre ? entresol23 : etage3;
+		};
+
+	/* Commande étage*/
+	cap1 := etage=etage1;
+	cap2 := etage=etage2;
+	cap3 := etage=etage3;
+
+	/* Commande voyants */
+	voyant1 := x11;
+	voyant2 := x21;
+	voyant3 := x31;
+
+	/* Commande cabine */
+	monter := x2;
+	descendre := x0 | x3;
+
+	/* Gestion bouton appel 1 */
+	next(x10) := (x11 & cap1) | (x10 & ~appel1);
+	next(x11) := (x10 & appel1) | (x11 & ~cap1);
+	/* Gestion bouton appel 2 */
+	next(x20) := (x21 & cap2) | (x20 & ~appel2);
+	next(x21) := (x20 & appel2) | (x21 & ~cap2);
+	/* Gestion bouton appel 3 */
+	next(x30) := (x31 & cap3) | (x30 & ~appel3);
+	next(x31) := (x30 & appel3) | (x31 & ~cap3);
+
+	/* Gestion cabine */
+	debut_monter := x21 & cap1 | x31 & (cap1 | cap2);
+	debut_descendre := (x21 & cap3 | x11 & (cap2 | cap3)) & ~debut_monter;
+	fin_monter := (x31 & cap3 | x21 & cap2) & ~x31;
+	fin_descendre := (x21 & cap2 | x11 & cap1) & ~x11;
+
+	next(x0) := x0 & ~cap1;
+	next(x1) := (x2 & fin_monter) | (x3 & fin_descendre) | (x1 & ~debut_monter & ~debut_descendre);
+	next(x2) := (x1 & debut_monter) | (x2 & ~fin_monter);
+	next(x3) := (x1 & debut_descendre) | (x3 & ~fin_descendre);
+
+	/***** Propriétés à vérifier *****/
+
+	securite_globale : assert G ~(monter & descendre);
+	securite_monter : assert G (cap3 -> X ~monter);
+	securite_descendre : assert G (cap1 -> X ~descendre);
+
+	hyp_appel1 : assert G F cap1;
+	hyp_appel2 : assert G F cap2;
+	hyp_appel3 : assert G F cap3;
+
+	vivacite_atteint1 : assert G F cap1;
+	vivacite_atteint2 : assert G F cap2;
+	vivacite_atteint3 : assert G F cap3;
+
+	assume hyp_appel1,hyp_appel2,hyp_appel3;
+	using hyp_appel1,hyp_appel2,hyp_appel3 prove vivacite_atteint1,vivacite_atteint2,vivacite_atteint3;
+}

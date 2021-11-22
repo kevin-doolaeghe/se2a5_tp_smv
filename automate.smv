@@ -1,0 +1,24 @@
+module main(e1,s1)
+{
+	input e1 : boolean;
+	output s1 : boolean;
+	pas : 1..5;
+	new_e1,old_e1 : boolean;
+
+	init(pas) := 1;
+	init(new_e1) := e1;
+
+	next(pas) := pas=5 ? 1 : pas+1;
+	next(new_e1) := pas=2 ? e1 : new_e1;
+	next(old_e1) := pas=1 ? new_e1 : old_e1;
+	next(s1) := pas=3 & new_e1 & ~old_e1 ? ~s1 : s1;
+
+	securite_front : assert G ( (~e1 & X e1) -> F ( ~(s1 <-> X s1) ) );
+
+	signal_bas : assert G ( (~e1 & X e1) -> (X X e1 & X X X e1 & X X X X e1 & X X X X X e1) );
+	signal_haut : assert G ( (e1 & X ~e1) -> (X X ~e1 & X X X ~e1 & X X X X ~e1 & X X X X X ~e1) );
+
+	assume signal_bas,signal_haut;
+
+	using signal_bas,signal_haut prove securite_front;
+}

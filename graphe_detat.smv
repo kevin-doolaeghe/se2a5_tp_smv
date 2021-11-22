@@ -1,0 +1,33 @@
+module main(e1,s1)
+{
+	input e1 : boolean;
+	output s1 : boolean;
+	old_e1 : boolean;
+	front_montant : boolean;
+
+	bouton : {appuye,relache};
+	voyant : {allume,eteint};
+
+	init(bouton) := relache;
+	init(voyant) := eteint;
+	init(old_e1) := e1;
+
+	next(bouton) :=
+		switch(bouton){
+			relache: e1 ? appuye : relache;
+			appuye: ~e1 ? relache : appuye;
+		};
+
+	front_montant := ~old_e1 & e1;
+	next(old_e1) := e1;
+
+	next(voyant) :=
+		switch(voyant){
+			eteint: front_montant ? allume : eteint;
+			allume: front_montant ? eteint : allume;
+		};
+
+	s1 := voyant = allume;
+
+	securite_front : assert G ( (~e1 & X e1) -> F ( ~(s1 <-> X s1) ) );
+}
